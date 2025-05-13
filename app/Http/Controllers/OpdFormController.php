@@ -9,19 +9,26 @@ class OpdFormController extends Controller
 
     public function index()  { $forms = OpdForm::orderBy('name')->get(); return view('opd_forms.index',compact('forms')); }
 
-    public function create() { return view('opd_forms.create'); }
-
-    public function store(Request $r)
+    public function create()
     {
-        $data = $r->validate([
+        return view('opd_forms.create');
+    }
+
+    /** Persist a new form */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
             'name'       => 'required|string|max:255',
             'form_no'    => 'required|string|max:50|unique:opd_forms,form_no',
             'department' => 'required|string|max:100',
         ]);
-        OpdForm::create($data);
-        return redirect()->route('opd_forms.index')->with('success','Form added.');
-    }
 
+        OpdForm::create($data);
+
+        return redirect()
+            ->route('opd_forms.index')
+            ->with('success','Form added successfully.');
+    }
     public function show(OpdForm $opd_form) { return view('opd_forms.show',compact('opd_form')); }
 
     public function edit(OpdForm $opd_form) { return view('opd_forms.edit',compact('opd_form')); }

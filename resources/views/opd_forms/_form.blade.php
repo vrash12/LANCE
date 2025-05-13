@@ -1,3 +1,4 @@
+{{ resources/views/opd_forms/_form.blade.php }}
 <div class="mb-3">
   <label class="form-label">Form Name</label>
   <input type="text" name="name" value="{{ old('name',$opd_form->name??'') }}" class="form-control" required>

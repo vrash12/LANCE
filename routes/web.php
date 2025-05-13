@@ -33,8 +33,10 @@ Route::middleware('auth')->group(function () {
              ->name('queue.index');
 
              Route::resource('schedules', WorkScheduleController::class);
-             Route::resource('opd_forms', App\Http\Controllers\OpdFormController::class);
+             Route::resource('opd_forms', OpdFormController::class);
     });
+    Route::resource('departments', DepartmentController::class)
+     ->only(['index','create','store']);
 
     // 3c) Encoder-only routes
     Route::middleware('role:encoder')->group(function () {

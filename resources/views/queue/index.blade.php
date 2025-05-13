@@ -73,6 +73,9 @@
                 </div>
             @endforeach
             <div class="plus-card" title="Add department">+</div>
+            <a href="{{ route('departments.create') }}">
+              <div class="plus-card" title="Add department">+</div>
+           </a>
         </div>
     </div>
 
