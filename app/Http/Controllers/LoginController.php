@@ -1,44 +1,70 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    // Show the login form
-    public function showLoginForm()
+    use AuthenticatesUsers;
+
+    /**
+     * Where to redirect users after login.
+     * @var string
+     */
+ 
+
+        protected function authenticated(Request $request, $user)
     {
-        return view('login');  // we'll create resources/views/login.blade.php
-    }
-
-    // Handle the login attempt
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email'    => ['required','email'],
-            'password' => ['required'],
-        ]);
-
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
-            // Regenerate session to prevent fixation
-            $request->session()->regenerate();
-
-            return redirect()->intended('/home');
+        // send patients to patient dashboard
+        if ($user->role === 'patient') {
+            return redirect()->route('patient.dashboard');
         }
 
-        return back()
-            ->withErrors(['email' => 'Invalid credentials.'])
-            ->withInput($request->only('email'));
+        // send encoders to their OPD form index
+        if ($user->role === 'encoder') {
+            return redirect()->route('encoder.opd.index');
+        }
+
+        // everyone else (admins) goes to /home
+        return redirect()->route('home');
     }
 
-    // Handle logout
+    /**
+     * Show the application login form.
+     */
+
+     
+    public function showLoginForm()
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Handle a login request to the application.
+     */
+
+
+    /**
+     * Log the user out of the application.
+     */
     public function logout(Request $request)
     {
-        Auth::logout();
+        $this->guard()->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('login');
     }
+
+    /**
+     * Get the guard to be used during authentication.
+     */
+    protected function guard()
+    {
+        return auth()->guard();
+    }
+
+  
 }

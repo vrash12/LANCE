@@ -15,32 +15,30 @@
         margin-bottom:1rem;
     }
     .page-header h1 { margin:0; font-size:1.9rem; font-weight:700; }
+    .btn-add {
+        background:#28a745;
+        border:none;
+        color:#fff;
+        font-size:.9rem;
+        padding:.5rem 1rem;
+        border-radius:.25rem;
+    }
+    .btn-add:hover {
+        background:#218838;
+    }
 
     /* DataTable tweaks */
-    #patients-table.table thead {
-        background:#e9ecef;
-    }
-    #patients-table.table tbody tr:nth-child(even) {
-        background:#f7f7f7;
-    }
-    #patients-table.table tbody tr td {
-        vertical-align:middle;
-    }
-    .dataTables_wrapper .dataTables_length label,
-    .dataTables_wrapper .dataTables_filter label { font-weight:600; }
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding:.25rem .6rem;font-size:.85rem;
-    }
-
-    /* View button */
-    .btn-view {
-        background:#1e90ff;border:none;color:#fff;font-size:.85rem;display:flex;align-items:center;gap:.25rem;
-    }
+    /* … your existing styles … */
 </style>
 
 <div class="page-header">
     <h1>Patient Record</h1>
-    <img src="{{ asset('images/fabella-logo.png') }}" width="60" alt="Fabella Logo">
+    <div>
+      <a href="{{ route('patients.create') }}" class="btn btn-add">
+        <i class="bi bi-person-plus-fill"></i> Add Patient
+      </a>
+      <img src="{{ asset('images/fabella-logo.png') }}" width="60" alt="Fabella Logo">
+    </div>
 </div>
 
 <table id="patients-table" class="table table-bordered" style="width:100%">

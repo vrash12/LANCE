@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Exports\ReportExport;
+use Maatwebsite\Excel\Facades\Excel;
+use PDF;
+
+class ReportController extends Controller
+{
+    public function index(Request $request)
+    {
+        // 7.4 Filters
+        $dateFrom = $request->input('from', now()->subMonth()->toDateString());
+        $dateTo   = $request->input('to',   now()->toDateString());
+
+        // Example metrics
+        $visits = DB::table('patient_visits')
+                    ->whereBetween('visited_at', [$dateFrom, $dateTo])
+                    ->selectRaw('DATE(visited_at) as day, COUNT(*) as total')
+                    ->groupBy('day')
+                    ->orderBy('day')
+                    ->get();
+
+        return view('reports.index', compact('visits','dateFrom','dateTo'));
+    }
+
+    /** 7.1 Generate Report (recalculate cached KPIs, if you store them) */
+    public function generate(Request $request)
+    {
+        // Example placeholder for heavy aggregation / queueable job
+        // Dispatch a job or recalc summaries here …
+        return back()->with('success','Report generation triggered!');
+    }
+
+    /** 7.1.1 Verify Data (AJAX sanity-check endpoint) */
+    public function verify(Request $request)
+    {
+        $missing = DB::table('patient_visits')
+                     ->whereNull('notes')
+                     ->count();
+
+        return response()->json([
+            'ok'      => $missing === 0,
+            'missing' => $missing,
+        ]);
+    }
+
+    /** 7.3 Excel export */
+    public function exportExcel(Request $request)
+    {
+        $from = $request->input('from'); $to = $request->input('to');
+        return Excel::download(
+            new ReportExport($from,$to),
+            "report_{$from}_to_{$to}.xlsx"
+        );
+    }
+
+    /** 7.3 PDF export */
+    public function exportPdf(Request $request)
+    {
+        $from = $request->input('from'); $to = $request->input('to');
+        $visits = DB::table('patient_visits')
+                    ->whereBetween('visited_at', [$from, $to])
+                    ->selectRaw('DATE(visited_at) as day, COUNT(*) as total')
+                    ->groupBy('day')->orderBy('day')->get();
+
+        $pdf = PDF::loadView('reports.pdf', compact('visits','from','to'))
+                  ->setPaper('a4','portrait');
+
+        return $pdf->download("report_{$from}_to_{$to}.pdf");
+    }
+}

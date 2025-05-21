@@ -24,6 +24,10 @@ return [
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
+    'trend_api' => [
+    'url' => env('TREND_API_URL', 'http://127.0.0.1:5000'), // your Flask base URL
+],
+
 
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),

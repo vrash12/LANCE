@@ -2,6 +2,8 @@
 namespace App\Http\Controllers;
 use App\Models\OpdForm;
 use Illuminate\Http\Request;
+use App\Models\Department;
+use PDF;
 
 class OpdFormController extends Controller
 {
@@ -9,10 +11,11 @@ class OpdFormController extends Controller
 
     public function index()  { $forms = OpdForm::orderBy('name')->get(); return view('opd_forms.index',compact('forms')); }
 
-    public function create()
-    {
-        return view('opd_forms.create');
-    }
+  public function create()
+{
+    $departments = Department::orderBy('name')->get();
+    return view('opd_forms.create', compact('departments'));
+}
 
     /** Persist a new form */
     public function store(Request $request)
@@ -29,6 +32,15 @@ class OpdFormController extends Controller
             ->route('opd_forms.index')
             ->with('success','Form added successfully.');
     }
+
+    public function exportPdf(OpdForm $opd_form)
+{
+    // you can pass any data needed by the view
+    $pdf = PDF::loadView('opd_forms.pdf', compact('opd_form'))
+              ->setPaper('a4','portrait');
+
+    return $pdf->download("opd-form-{$opd_form->form_no}.pdf");
+}
     public function show(OpdForm $opd_form) { return view('opd_forms.show',compact('opd_form')); }
 
     public function edit(OpdForm $opd_form) { return view('opd_forms.edit',compact('opd_form')); }

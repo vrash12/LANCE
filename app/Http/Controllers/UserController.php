@@ -81,4 +81,8 @@ class UserController extends Controller
             ->route('users.index')
             ->with('success','User deleted.');
     }
+        public function show(User $user)
+    {
+        return view('users.show', compact('user'));
+    }
 }

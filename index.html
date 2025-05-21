@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenWeatherMap API Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #weatherInfo {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #stationForm {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 1rem;
+            width: 100%;
+        }
+        button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenWeatherMap API Demonstration</h1>
+
+    <!-- Section for GET Request (Weather) -->
+    <h2>GET Request - Current Weather Data</h2>
+    <label for="city">Enter a city name (e.g., Tarlac):</label>
+    <input type="text" id="city" placeholder="Enter city">
+    <button onclick="getWeather()">Get Weather</button>
+
+    <div id="weatherInfo"></div>
+
+    <!-- Section for POST Request (Register Weather Station) -->
+    <h2>POST Request - Register a New Weather Station</h2>
+    <form id="stationForm">
+        <label for="stationName">Station Name:</label>
+        <input type="text" id="stationName" placeholder="Station name">
+        <label for="latitude">Latitude:</label>
+        <input type="text" id="latitude" placeholder="Latitude (e.g., 15.4802)">
+        <label for="longitude">Longitude:</label>
+        <input type="text" id="longitude" placeholder="Longitude (e.g., 120.5979)">
+        <label for="altitude">Altitude:</label>
+        <input type="text" id="altitude" placeholder="Altitude (e.g., 61)">
+        <button type="button" onclick="registerStation()">Register Station</button>
+    </form>
+
+    <div id="stationResponse"></div>
+
+    <script>
+        const apiKey = "15729fecf0f158be9f6e317eb8a2081c";  // Replace with your actual API key
+
+        // Function to fetch weather data using GET
+        async function getWeather() {
+            const city = document.getElementById("city").value;
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("City not found.");
+                
+                const data = await response.json();
+                document.getElementById("weatherInfo").innerHTML = `
+                    <h3>Weather in ${data.name}</h3>
+                    <p>Temperature: ${data.main.temp}°C</p>
+                    <p>Description: ${data.weather[0].description}</p>
+                    <p>Humidity: ${data.main.humidity}%</p>
+                    <p>Wind Speed: ${data.wind.speed} m/s</p>
+                `;
+            } catch (error) {
+                document.getElementById("weatherInfo").innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        // Function to register a new weather station using POST
+        async function registerStation() {
+            const stationName = document.getElementById("stationName").value;
+            const latitude = document.getElementById("latitude").value;
+            const longitude = document.getElementById("longitude").value;
+            const altitude = document.getElementById("altitude").value;
+            
+            const url = `https://api.openweathermap.org/data/3.0/stations?appid=${apiKey}`;
+            const body = {
+                "external_id": `PH_${stationName.toUpperCase().replace(/ /g, '')}`,
+                "name": stationName,
+                "latitude": parseFloat(latitude),
+                "longitude": parseFloat(longitude),
+                "altitude": parseFloat(altitude)
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) throw new Error("Failed to register the station.");
+
+                const data = await response.json();
+                document.getElementById("stationResponse").innerHTML = `
+                    <h3>Station Registered Successfully!</h3>
+                    <p>Station ID: ${data.id}</p>
+                    <p>Station Name: ${data.name}</p>
+                    <p>Latitude: ${data.latitude}</p>
+                    <p>Longitude: ${data.longitude}</p>
+                    <p>Altitude: ${data.altitude}</p>
+                `;
+            } catch (error) {
+                document.getElementById("stationResponse").innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
