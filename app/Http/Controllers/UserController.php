@@ -9,40 +9,43 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
-    {
-        // Retrieve users ordered by name
-        $users = User::orderBy('name')->get();
-        return view('users.index', compact('users'));
-    }
+public function index()
+{
+    $users = User::with('patient')
+                 ->orderBy('role')   // so Admins / Encoders / Patients group nicely
+                 ->orderBy('name')
+                 ->get();
 
+    return view('users.index', compact('users'));
+}
     // Show the form for creating a new user
     public function create()
     {
         return view('users.create');
     }
 
-    // Store a newly created user
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'role'     => 'required|in:admin,encoder,patient',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+  public function store(Request $request)
+{
+    $data = $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|email|unique:users,email',
+        // only admin & encoder allowed now
+        'role'     => 'required|in:admin,encoder',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
 
-        User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'role'     => $data['role'],
-            'password' => Hash::make($data['password']),
-        ]);
+    User::create([
+        'name'     => $data['name'],
+        'email'    => $data['email'],
+        'role'     => $data['role'],
+        'password' => Hash::make($data['password']),
+    ]);
 
-        return redirect()
-            ->route('users.index')
-            ->with('success','User created successfully.');
-    }
+    return redirect()->route('users.index')
+                     ->with('success','User created successfully.');
+}
+
+
 
     // Show the form for editing the specified user
     public function edit(User $user)
@@ -50,28 +53,29 @@ class UserController extends Controller
         return view('users.edit', compact('user'));
     }
 
-    // Update the specified user in storage
-    public function update(Request $request, User $user)
-    {
-        $data = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => "required|email|unique:users,email,{$user->id}",
-            'role'  => 'required|in:admin,encoder,patient',
-            'password' => 'nullable|string|min:8|confirmed',
-        ]);
+   public function update(Request $request, User $user)
+{
+    $data = $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => "required|email|unique:users,email,{$user->id}",
+        // only admin & encoder
+        'role'     => 'required|in:admin,encoder',
+        'password' => 'nullable|string|min:8|confirmed',
+    ]);
 
-        $user->name  = $data['name'];
-        $user->email = $data['email'];
-        $user->role  = $data['role'];
-        if (!empty($data['password'])) {
-            $user->password = Hash::make($data['password']);
-        }
-        $user->save();
-
-        return redirect()
-            ->route('users.index')
-            ->with('success','User updated successfully.');
+    $user->fill([
+        'name'  => $data['name'],
+        'email' => $data['email'],
+        'role'  => $data['role'],
+    ]);
+    if (!empty($data['password'])) {
+        $user->password = Hash::make($data['password']);
     }
+    $user->save();
+
+    return redirect()->route('users.index')
+                     ->with('success','User updated successfully.');
+}
 
     // Remove the specified user from storage
     public function destroy(User $user)

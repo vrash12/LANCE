@@ -38,7 +38,7 @@
               required>
         <option value="admin"   {{ old('role')=='admin'   ? 'selected':'' }}>Admin</option>
         <option value="encoder" {{ old('role')=='encoder' ? 'selected':'' }}>Encoder</option>
-        <option value="patient" {{ old('role')=='patient' ? 'selected':'' }}>Patient</option>
+        
       </select>
       @error('role')
         <div class="invalid-feedback">{{ $message }}</div>

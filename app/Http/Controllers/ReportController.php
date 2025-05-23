@@ -1,5 +1,5 @@
 <?php
-
+//app/Http/Controllers/ReportController.php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -7,16 +7,17 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\ReportExport;
 use Maatwebsite\Excel\Facades\Excel;
 use PDF;
+use App\Models\Patient;
 
 class ReportController extends Controller
 {
-    public function index(Request $request)
+ public function index(Request $request)
     {
-        // 7.4 Filters
+        // ── 1) Date filters ──
         $dateFrom = $request->input('from', now()->subMonth()->toDateString());
         $dateTo   = $request->input('to',   now()->toDateString());
 
-        // Example metrics
+        // ── 2) Daily patient visits ──
         $visits = DB::table('patient_visits')
                     ->whereBetween('visited_at', [$dateFrom, $dateTo])
                     ->selectRaw('DATE(visited_at) as day, COUNT(*) as total')
@@ -24,9 +25,45 @@ class ReportController extends Controller
                     ->orderBy('day')
                     ->get();
 
-        return view('reports.index', compact('visits','dateFrom','dateTo'));
-    }
+        // ── 3) Age Range Distribution ──
+        $ageStats = Patient::selectRaw("
+            CASE
+              WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) < 18 THEN '<18'
+              WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 18 AND 35 THEN '18–35'
+              WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 36 AND 60 THEN '36–60'
+              ELSE '>60'
+            END AS age_range,
+            COUNT(*) AS total
+        ")
+        ->groupBy('age_range')
+        ->orderByRaw("FIELD(age_range,'<18','18–35','36–60','>60')")
+        ->get();
 
+        // ── 4) Gender Distribution ──
+        $genderStats = DB::table('patient_profiles')
+                         ->select('sex', DB::raw('COUNT(*) AS total'))
+                         ->groupBy('sex')
+                         ->get();
+
+        // ── 5) Blood Type Breakdown ──
+        $bloodStats = DB::table('patient_profiles')
+                        ->select('blood_type', DB::raw('COUNT(*) AS total'))
+                        ->groupBy('blood_type')
+                        ->get();
+
+        // ── 6) Delivery Type Breakdown ──
+        $deliveryStats = DB::table('patient_profiles')
+                           ->select('delivery_type', DB::raw('COUNT(*) AS total'))
+                           ->groupBy('delivery_type')
+                           ->get();
+
+        // ── finally, pass everything to the view ──
+        return view('reports.index', compact(
+            'visits','dateFrom','dateTo',
+            'ageStats','genderStats','bloodStats','deliveryStats'
+        ));
+    }
+    
     /** 7.1 Generate Report (recalculate cached KPIs, if you store them) */
     public function generate(Request $request)
     {

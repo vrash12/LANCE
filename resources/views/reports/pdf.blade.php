@@ -1,3 +1,4 @@
+<!-- resources/views/reports/pdf.blade.php -->
 <!DOCTYPE html>
 <html>
 <head>

@@ -20,10 +20,10 @@ class Patient extends Model
     /**
      * Link back to the User record.
      */
-    public function user()
-    {
-        return $this->belongsTo(\App\Models\User::class);
-    }
+public function user()
+{
+    return $this->belongsTo(\App\Models\User::class);
+}
 
     /**
      * Get the visit history.
@@ -32,5 +32,11 @@ class Patient extends Model
     {
         return $this->hasMany(PatientVisit::class)
                     ->orderBy('visited_at','desc');
+    }
+        protected $guarded = [];
+
+    public function profile()
+    {
+        return $this->hasOne(PatientProfile::class);
     }
 }

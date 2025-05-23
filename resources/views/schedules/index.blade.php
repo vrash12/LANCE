@@ -1,3 +1,4 @@
+{{-- resources/views/schedules/index.blade.php --}}
 @extends('layouts.admin')
 
 @section('content')
@@ -23,22 +24,24 @@
   </thead>
   <tbody>
     @foreach($schedules as $sched)
-    <tr>
-      <td>{{ $sched->staff_name }}</td>
-      <td>{{ $sched->role }}</td>
-      <td>{{ $sched->date->format('Y-m-d') }}</td>
-      <td>{{ \Carbon\Carbon::parse($sched->shift_start)->format('h:i A') }}
-          – {{ \Carbon\Carbon::parse($sched->shift_end)->format('h:i A') }}</td>
-      <td>{{ $sched->department }}</td>
-      <td>
-        <a href="{{ route('schedules.edit', $sched) }}" class="btn btn-sm btn-info">Edit</a>
-        <form action="{{ route('schedules.destroy',$sched) }}" method="POST" class="d-inline"
-              onsubmit="return confirm('Delete this schedule?');">
-          @csrf @method('DELETE')
-          <button class="btn btn-sm btn-danger">Delete</button>
-        </form>
-      </td>
-    </tr>
+      <tr>
+        <td>{{ $sched->staff_name }}</td>
+        <td>{{ $sched->role }}</td>
+        <td>{{ $sched->date->format('Y-m-d') }}</td>
+        <td>
+          {{ \Carbon\Carbon::parse($sched->shift_start)->format('h:i A') }}
+          – {{ \Carbon\Carbon::parse($sched->shift_end)->format('h:i A') }}
+        </td>
+        <td>{{ $sched->department }}</td>
+        <td>
+          <a href="{{ route('schedules.edit', $sched) }}" class="btn btn-sm btn-info">Edit</a>
+          <form action="{{ route('schedules.destroy', $sched) }}" method="POST" class="d-inline"
+                onsubmit="return confirm('Delete this schedule?');">
+            @csrf @method('DELETE')
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
     @endforeach
   </tbody>
 </table>

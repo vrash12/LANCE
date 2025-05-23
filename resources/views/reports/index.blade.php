@@ -49,5 +49,101 @@
       </div>
     </div>
   </div>
+  <div class="row gy-4 mt-5">
+
+    {{-- Age Range Bar Chart --}}
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Age Range of Patients</div>
+        <div class="card-body">
+          <canvas id="ageChart" style="height:300px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    {{-- Gender Pie Chart --}}
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Gender Distribution</div>
+        <div class="card-body">
+          <canvas id="genderChart" style="height:300px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    {{-- Blood Type Pie Chart --}}
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Blood Type Breakdown</div>
+        <div class="card-body">
+          <canvas id="bloodChart" style="height:300px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    {{-- Delivery Type Pie Chart --}}
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Delivery Type Breakdown</div>
+        <div class="card-body">
+          <canvas id="deliveryChart" style="height:300px"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 @endsection
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+  const extract = (coll, labelKey, dataKey) => ({
+    labels: coll.map(r => r[labelKey]),
+    data:   coll.map(r => r[dataKey])
+  });
+
+  // 1) Age Range → Bar
+  (() => {
+    const stats = @json($ageStats);
+    const { labels, data } = extract(stats, 'age_range','total');
+    new Chart(document.getElementById('ageChart'), {
+      type: 'bar',
+      data: { labels, datasets:[{ label:'Patients', data }] },
+      options: {
+        scales: { y: { beginAtZero:true, ticks:{precision:0} } }
+      }
+    });
+  })();
+
+  // 2) Gender → Pie
+  (() => {
+    const stats = @json($genderStats);
+    const { labels, data } = extract(stats, 'sex','total');
+    new Chart(document.getElementById('genderChart'), {
+      type: 'pie',
+      data: { labels, datasets:[{ data }] }
+    });
+  })();
+
+  // 3) Blood Type → Pie
+  (() => {
+    const stats = @json($bloodStats);
+    const { labels, data } = extract(stats, 'blood_type','total');
+    new Chart(document.getElementById('bloodChart'), {
+      type: 'pie',
+      data: { labels, datasets:[{ data }] }
+    });
+  })();
+
+  // 4) Delivery Type → Pie
+  (() => {
+    const stats = @json($deliveryStats);
+    const { labels, data } = extract(stats, 'delivery_type','total');
+    new Chart(document.getElementById('deliveryChart'), {
+      type: 'pie',
+      data: { labels, datasets:[{ data }] }
+    });
+  })();
+</script>
+@endpush
