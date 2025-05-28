@@ -30,58 +30,47 @@
   .btn-sm     { margin-right:.3rem; }
 </style>
 
-<div class="page-header">
-  <h1>Patient Records</h1>
-  <div>
-    <a href="{{ route('patients.create') }}" class="btn btn-add">
-      <i class="bi bi-person-plus-fill"></i> Add Patient
-    </a>
-    <img src="{{ asset('images/fabella-logo.png') }}" width="60" alt="Fabella Logo">
+ <div class="page-header">
+    <h1>OB OPD Patients</h1>
+    <div>
+      <!-- you could remove “Add Patient” if patients now come only from submissions -->
+    </div>
   </div>
-</div>
 
-<table id="patients-table" class="table table-bordered" style="width:100%">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th class="text-center" style="width:260px;">Action</th>
-    </tr>
-  </thead>
-<tbody>
-  @foreach($users as $user)
-    <tr>
-      <td>{{ $user->name }}</td>
-      <td>{{ $user->email }}</td>
+  <table id="patients-table" class="table table-bordered" style="width:100%">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th class="text-center" style="width:260px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+@foreach($patients as $patient)
+  @continue(!$patient)   {{-- skip if null --}}
 
-      <td class="text-center align-middle">
-        {{-- View --}}
-        <a href="{{ route('patients.show', $user->patient) }}"
-           class="btn btn-sm btn-view">
-          <i class="bi bi-file-earmark-text"></i> View
-        </a>
-
-        {{-- Edit --}}
-        <a href="{{ route('patients.edit', $user->patient) }}"
-           class="btn btn-sm btn-info">
-          <i class="bi bi-pencil-square"></i> Edit
-        </a>
-
-        {{-- Delete --}}
-        <form action="{{ route('patients.destroy', $user->patient) }}"
-              method="POST" class="d-inline"
-              onsubmit="return confirm('Delete this patient?');">
+  <tr>
+      <td>{{ $patient->name }}</td>
+      <td>{{ optional($patient->user)->email ?? '— no user' }}</td>
+    <td class="text-center align-middle">
+      @if($patient->user)
+        <a href="{{ route('patients.show', $patient) }}" class="btn btn-sm btn-view">View</a>
+        <a href="{{ route('patients.edit', $patient) }}" class="btn btn-sm btn-info">Edit</a>
+        <form action="{{ route('patients.destroy', $patient) }}"
+              method="POST" class="d-inline" onsubmit="return confirm('Delete this patient?');">
           @csrf @method('DELETE')
-          <button class="btn btn-sm btn-danger">
-            <i class="bi bi-trash"></i> Delete
-          </button>
+          <button class="btn btn-sm btn-danger">Delete</button>
         </form>
-      </td>
-    </tr>
-  @endforeach
-</tbody>
+      @else
+        <span class="text-muted">no user assigned</span>
+      @endif
+    </td>
+  </tr>
+@endforeach
 
-</table>
+
+    </tbody>
+  </table>
 
 <!-- DataTables (optional) -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">

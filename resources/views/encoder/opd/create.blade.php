@@ -1,48 +1,22 @@
+{{-- resources/views/encoder/opd/create.blade.php --}}
 @extends('layouts.encoder')
 
 @section('content')
-<div class="container col-lg-6">
-  <h2 class="mb-4">Submit OPD Form</h2>
+<div class="container">
+  <h1 class="mb-4">
+      OB Form &middot; Fill for {{ $patient->name }}
+  </h1>
 
-  <form action="{{ route('encoder.opd.store') }}" method="POST">
+  {{-- POST answers to patient_profiles --}}
+  <form method="POST"
+        action="{{ route('encoder.patient_profiles.store', $patient) }}">
     @csrf
 
-    <div class="mb-3">
-      <label class="form-label">Which Form?</label>
-      <select name="form_id" class="form-select" required>
-        <option value="">-- select form --</option>
-        @foreach($forms as $f)
-          <option value="{{ $f->id }}">{{ $f->name }}</option>
-        @endforeach
-      </select>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">Patient</label>
-      <select name="patient_id" class="form-select" required>
-        <option value="">-- select patient --</option>
-        @foreach($patients as $p)
-          <option value="{{ $p->id }}">{{ $p->name }}</option>
-        @endforeach
-      </select>
-    </div>
-
-    {{-- Example question/answer inputs; adapt to your form schema --}}
-    <div class="mb-3">
-      <label class="form-label">Visit Reason</label>
-      <input type="text" name="answers[reason]" class="form-control" required>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Height (cm)</label>
-      <input type="number" name="answers[height]" class="form-control">
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Weight (kg)</label>
-      <input type="number" name="answers[weight]" class="form-control">
-    </div>
-
-    <button class="btn btn-primary">Submit</button>
-    <a href="{{ route('encoder.opd.index') }}" class="btn btn-secondary">Cancel</a>
+    @include('encoder.opd._form', [
+        'opd_form'   => null,     // not editing template
+        'forPatient' => true,     // tells the partial to hide template fields
+        'patient'    => $patient,
+    ])
   </form>
 </div>
 @endsection

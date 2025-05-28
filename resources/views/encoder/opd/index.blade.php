@@ -1,33 +1,39 @@
-@extends('layouts.encoder') {{-- or a dedicated encoder layout --}}
+{{-- resources/views/encoder/opd/index.blade.php --}}
+@extends('layouts.encoder')
 
 @section('content')
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>My OPD Submissions</h2>
-    <a href="{{ route('encoder.opd.create') }}" class="btn btn-success">
-      <i class="bi bi-plus-circle"></i> New Submission
-    </a>
-  </div>
+  <h1 class="mb-4">Patient Profiles (OB)</h1>
 
-  <table class="table table-bordered">
+  <table class="table table-bordered align-middle">
     <thead>
-      <tr><th>Form</th><th>Patient</th><th>Date</th><th>Action</th></tr>
-    </thead>
-    <tbody>
-    @forelse($subs as $s)
       <tr>
-        <td>{{ $s->form->name }}</td>
-        <td>{{ $s->patient->name }}</td>
-        <td>{{ $s->created_at->format('Y-m-d H:i') }}</td>
-        <td>
-          <a href="{{ route('encoder.opd.show',$s) }}"
-             class="btn btn-sm btn-primary">View</a>
-        </td>
+        <th>Date&nbsp;Recorded</th>
+        <th>Patient</th>
+        <th>Gravida / Parity</th>
+        <th>Prepared By</th>
+        <th class="text-center">Actions</th>
       </tr>
-    @empty
-      <tr><td colspan="4">No submissions yet.</td></tr>
-    @endforelse
-    </tbody>
+    </thead>
+   <tbody>
+@foreach ($forms as $form)
+  <tr>
+    <td>{{ $form->created_at->toDateString() }}</td>
+    <td>{{ $form->name }}</td>
+    <td>{{ $form->department }}</td>
+    <td>—</td>
+    <td class="text-center">
+      <a href="{{ route('encoder.opd.show',  $form) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-eye"></i>
+      </a>
+      <a href="{{ route('encoder.opd.edit',  $form) }}" class="btn btn-sm btn-warning">
+        <i class="bi bi-pencil"></i>
+      </a>
+    </td>
+  </tr>
+@endforeach
+
+</tbody>
   </table>
 </div>
 @endsection

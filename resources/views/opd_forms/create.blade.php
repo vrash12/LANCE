@@ -2,15 +2,28 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container col-lg-6">
-  <h2>Add OPD Form</h2>
-  <form action="{{ route('opd_forms.store') }}" method="POST">
-    @csrf
+  <div class="container-fluid">
+    <h1 class="mb-4">
+      @switch($type)
+        @case('high_risk') Add Identification-of-High-Risk Form @break
+        @case('follow_up') Add Follow-Up Records Form @break
+        @default           Add OPD-OB Form
+      @endswitch
+    </h1>
 
-    @include('opd_forms._form')
+    @php
+      $partial = match($type) {
+        'high_risk' => 'high_risk',
+        'follow_up' => 'follow_up',
+        default     => 'opdb',
+      };
+    @endphp
 
-    <button type="submit" class="btn btn-success mt-2">Save</button>
-    <a href="{{ route('opd_forms.index') }}" class="btn btn-secondary mt-2">Cancel</a>
-  </form>
-</div>
+    @include("opd_forms.$partial._form", [
+      'opd_form'  => null,
+      'postRoute' => route('opd_forms.store'),
+      'showButtons' => true,
+      'type'      => $type,            {{-- add this! --}}
+    ])
+  </div>
 @endsection

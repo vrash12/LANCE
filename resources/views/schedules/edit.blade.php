@@ -1,5 +1,6 @@
 @extends('layouts.admin')
 
+
 @section('content')
 <div class="container col-lg-6">
   <h2>Edit Schedule</h2>

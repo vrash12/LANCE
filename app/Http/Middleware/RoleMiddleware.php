@@ -10,26 +10,28 @@ class RoleMiddleware
 {
     public function handle($request, Closure $next, ...$roles)
     {
-        // 1. Not logged in → go to login
+        
+        // 1. If not logged in → go to login
         if (! Auth::check()) {
             return redirect()->route('login');
         }
 
-        // 2. Normalise
+        // 2. Normalize current role (lowercase)
         $current = Str::lower(trim(Auth::user()->role));
+        // Normalize allowed roles (to handle multiple roles)
         $allowed = collect($roles)
             ->flatMap(fn ($r) => explode(',', $r))
             ->map(fn ($r) => Str::lower(trim($r)))
             ->all();
 
-        // 3. Let the right roles pass
+        // 3. Let the correct role pass through
         if (in_array($current, $allowed, true)) {
             return $next($request);
         }
 
         /*
          |---------------------------------------------------------------
-         |  NEW: graceful redirect instead of 403
+         | NEW: Graceful redirection instead of 403
          |---------------------------------------------------------------
          */
         logger()->notice('RoleMiddleware redirecting user', [
@@ -38,11 +40,12 @@ class RoleMiddleware
             'tried'   => $request->fullUrl(),
         ]);
 
+        // Redirection based on user role
         return match ($current) {
-            'admin'   => redirect()->route('home'),
-            'encoder' => redirect()->route('encoder.opd.index'),
-            'patient' => redirect()->route('patient.dashboard'),
-            default   => redirect('/'),
+            'admin'   => redirect()->route('home'),  // Redirect Admin to home
+            'encoder' => redirect()->route('encoder.patients.index'),  // Redirect Encoder to patient records list
+            'patient' => redirect()->route('patient.dashboard'),  // Redirect Patient to their dashboard
+            default   => redirect('/'),  // Redirect to home for other roles
         };
     }
 }

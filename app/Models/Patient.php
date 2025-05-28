@@ -25,13 +25,13 @@ public function user()
     return $this->belongsTo(\App\Models\User::class);
 }
 
-    /**
-     * Get the visit history.
-     */
-    public function visits()
+
+
+  public function visits()
     {
-        return $this->hasMany(PatientVisit::class)
-                    ->orderBy('visited_at','desc');
+        return $this->hasMany(Token::class)
+                    ->whereNotNull('served_at')
+                    ->orderBy('served_at','desc');
     }
         protected $guarded = [];
 
@@ -39,4 +39,8 @@ public function user()
     {
         return $this->hasOne(PatientProfile::class);
     }
+    public function profiles()
+{
+    return $this->hasMany(PatientProfile::class);
+}
 }

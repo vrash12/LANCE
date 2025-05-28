@@ -1,67 +1,46 @@
-
 # flask-analytics/app/services/data_fetcher.py
 
+import os
+import mysql.connector
 from datetime import datetime
-from typing import List, Dict, Optional
-import pandas as pd
-from .models import PatientVisit, Token
-from . import db
 
+def get_db_connection():
+    return mysql.connector.connect(
+        host     = os.getenv("DB_HOST", "localhost"),
+        user     = os.getenv("DB_USER", "your_user"),
+        password = os.getenv("DB_PASS", "your_pass"),
+        database = os.getenv("DB_NAME", "your_db"),
+        charset  = "utf8mb4"
+    )
 
-def fetch_patient_visits(date_from: Optional[datetime] = None,
-                         date_to:   Optional[datetime] = None) -> List[Dict]:
+def fetch_patient_visit_counts(date_from=None, date_to=None):
     """
-    Query PatientVisit records between date_from and date_to.
-
-    Returns list of dicts: { 'visited_at': ..., 'notes': ... }
+    Returns a list of dicts: [{"date": "YYYY-MM-DD", "count": 42}, …]
+    based on served tokens per day.
     """
-    q = db.session.query(PatientVisit)
-    if date_from:
-        q = q.filter(PatientVisit.visited_at >= date_from)
-    if date_to:
-        q = q.filter(PatientVisit.visited_at <= date_to)
-    visits = q.all()
-    return [{
-        'visited_at': v.visited_at,
-        'notes':      v.notes,
-    } for v in visits]
+    conn = get_db_connection()
+    cur  = conn.cursor(dictionary=True)
 
+    # default to last 30 days if none supplied
+    if not date_to:
+        date_to = datetime.today().strftime("%Y-%m-%d")
+    if not date_from:
+        # 30 days before
+        date_from = (datetime.today() - 
+                     timedelta(days=30)).strftime("%Y-%m-%d")
 
-def fetch_patient_visit_counts(date_from: Optional[datetime] = None,
-                               date_to:   Optional[datetime] = None) -> List[Dict]:
-    """
-    Returns daily visit counts: [{ 'date': date, 'count': n }, ...]
-    """
-    records = fetch_patient_visits(date_from, date_to)
-    if not records:
-        return []
-    df = pd.DataFrame(records)
-    df['date'] = pd.to_datetime(df['visited_at']).dt.date
-    counts = df.groupby('date').size().reset_index(name='count')
-    return counts.to_dict('records')
+    cur.execute("""
+        SELECT 
+          DATE(served_at) AS date,
+          COUNT(*)         AS count
+        FROM tokens
+        WHERE served_at IS NOT NULL
+          AND DATE(served_at) BETWEEN %s AND %s
+        GROUP BY DATE(served_at)
+        ORDER BY DATE(served_at)
+    """, (date_from, date_to))
 
-
-def fetch_pending_tokens(date_from: Optional[datetime] = None,
-                         date_to:   Optional[datetime] = None) -> int:
-    """
-    Count tokens created but not completed in the given range.
-    """
-    q = db.session.query(Token)
-    if date_from:
-        q = q.filter(Token.created_at >= date_from)
-    if date_to:
-        q = q.filter(Token.created_at <= date_to)
-    return q.filter(Token.completed_at.is_(None)).count()
-
-
-def fetch_completed_tokens(date_from: Optional[datetime] = None,
-                           date_to:   Optional[datetime] = None) -> int:
-    """
-    Count tokens marked completed in the given range.
-    """
-    q = db.session.query(Token)
-    if date_from:
-        q = q.filter(Token.completed_at >= date_from)
-    if date_to:
-        q = q.filter(Token.completed_at <= date_to)
-    return q.filter(Token.completed_at.isnot(None)).count()
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows

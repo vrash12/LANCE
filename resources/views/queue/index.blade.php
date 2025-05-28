@@ -2,7 +2,6 @@
 @extends('layouts.admin')
 
 @section('content')
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
 
 {{-- ==== Flash message ==== --}}
 @if(session('success'))
@@ -150,11 +149,13 @@
 
       @endforeach
 
-      {{-- “+” to add a new department --}}
-      <a href="{{ route('departments.create') }}"
-         class="dept-card plus-card d-flex justify-content-center align-items-center">
-        +
-      </a>
+ {{-- “+” to add a new department --}}
+    @can('create', App\Models\Department::class) {{-- or if you’re not using policies, use auth()->user()->is_admin --}}
+    <a href="{{ route('departments.create') }}"
+       class="dept-card plus-card d-flex justify-content-center align-items-center">
+      +
+    </a>
+    @endcan
     </div>
   </div>
 

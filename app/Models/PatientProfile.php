@@ -1,13 +1,23 @@
 <?php
-// app/Models/PatientProfile.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class PatientProfile extends Model
 {
-    protected $guarded = [];   // or use $fillable for tighter control
+    protected $guarded = [];
 
+    protected $casts = [
+        'present_health_problems' => 'array',
+        'danger_signs'            => 'array',
+        'ob_history'              => 'array',
+        'physical_exam_log'       => 'array',
+    ];
+
+    /**
+     * Inverse relation → the patient that owns this profile.
+     */
     public function patient()
     {
         return $this->belongsTo(Patient::class);

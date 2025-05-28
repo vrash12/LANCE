@@ -44,8 +44,37 @@
     <h1>OPD Forms</h1>
     <img src="{{ asset('images/fabella-logo.png') }}" width="60" alt="Fabella Logo">
 </div>
+<!-- Add Form dropdown -->
+<div class="dropdown mb-3">
+  <button class="btn btn-primary dropdown-toggle"
+          type="button"
+          id="addFormBtn"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+      + Add Form
+  </button>
 
-<a href="{{ route('opd_forms.create') }}" class="btn btn-primary mb-3">+ Add Form</a>
+  <ul class="dropdown-menu" aria-labelledby="addFormBtn">
+      <li>
+        <a class="dropdown-item" href="{{ route('ob-opd-forms.create') }}">
+          New OPD-OB Record
+        </a>
+      </li>
+     <li>
+    <a class="dropdown-item"
+       href="{{ route('high-risk-opd-forms.create') }}">
+      Identification of High Risk (OPD-F-09)
+    </a>
+  </li>
+      <li>
+        <a class="dropdown-item"
+           href="{{ route('opd_forms.create', ['type' => 'follow_up']) }}">
+          Follow-Up Records (OPD-F-08)
+        </a>
+      </li>
+  </ul>
+</div>
+
 
 <div class="card shadow-sm">
     <div class="sub-header">
@@ -72,3 +101,20 @@
     @endforeach
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('addFormBtn');
+    if (!btn) return;
+
+    // Manually create a dropdown instance to verify JS is present
+    try {
+        new bootstrap.Dropdown(btn);
+        console.log('Bootstrap dropdown initialised OK');
+    } catch (e) {
+        console.error('Bootstrap JS not loaded:', e);
+    }
+});
+</script>
+@endpush

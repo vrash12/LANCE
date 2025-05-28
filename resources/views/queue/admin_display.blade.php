@@ -25,16 +25,23 @@
 <body>
 
   {{-- HEADER --}}
-  <div class="topbar">
-    <span>Queueing</span>
-    {{-- Serve-Next button --}}
-    <form action="{{ route('queue.serveNext.admin',$department) }}" method="POST"
-          onsubmit="return confirm('Serve next token in {{ $department->short_name }}?');">
-      @csrf @method('PATCH')
-      <button class="btn btn-light btn-lg me-3" style="font-size:1.4rem">
-        <i class="bi bi-forward-fill"></i> Serve&nbsp;Next
-      </button>
-    </form>
+  <div class="topbar d-flex justify-content-between align-items-center">
+    <div>
+      <a href="{{ route('queue.index') }}" class="btn btn-light btn-sm me-3">
+        ← Back
+      </a>
+
+      {{-- Serve-Next button --}}
+      <form action="{{ route('queue.serveNext.admin',$department) }}" method="POST"
+            onsubmit="return confirm('Serve next token?');"
+            class="d-inline">
+        @csrf @method('PATCH')
+        <button class="btn btn-light btn-lg me-3" style="font-size:1.4rem">
+          <i class="bi bi-forward-fill"></i> Serve Next
+        </button>
+      </form>
+    </div>
+
     <img src="{{ asset('images/fabella-logo.png') }}" alt="Logo">
   </div>
 

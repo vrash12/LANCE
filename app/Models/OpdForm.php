@@ -1,17 +1,20 @@
 <?php
-
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class OpdForm extends Model
 {
-    use HasFactory;
+ protected $fillable = [
+  'name','form_no','department','fields',
+];
 
-    protected $fillable = [
-        'name',
-        'form_no',
-        'department',
+    protected $casts = [
+        'fields'  => 'array',  // ← so you get an array in PHP
     ];
+
+public function submissions()
+{
+    return $this->hasMany(OpdSubmission::class, 'form_id');
+}
 }

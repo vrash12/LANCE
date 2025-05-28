@@ -21,10 +21,12 @@ protected $dates = [
         'served_at',
     ];
 
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
+  // app/Models/Token.php
+public function department()
+{
+  return $this->belongsTo(Department::class);
+}
+
 
         protected $casts = [
         'served_at' => 'datetime',

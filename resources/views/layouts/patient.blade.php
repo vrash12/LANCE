@@ -79,6 +79,9 @@
           <i class="bi bi-people-fill"></i> Queueing
         </a>
       </li>
+ 
+
+
       @if(auth()->user()->patient)
       <li class="nav-item">
         <a href="{{ route('patients.show', auth()->user()->patient) }}"

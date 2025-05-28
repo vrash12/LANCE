@@ -1,0 +1,1 @@
+@include('opd_forms.high_risk._form', get_defined_vars())

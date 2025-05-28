@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/QueueController.php
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;  
 use App\Models\Department;
 use App\Models\Token;           // Token model holds each queue token
 use Carbon\Carbon;
@@ -45,45 +45,43 @@ public function history(Request $req)
     return view('queue.history', compact('tokens','departments'));
 }
 public function patientStore(Request $request, Department $department)
-    {
-        $patient = Auth::user()->patient;
+{
+    $patient = Auth::user()->patient;
 
-        // do they already have an unserved token here?
-        $already = Token::where('department_id',$department->id)
-                        ->where('patient_id',$patient->id)
-                        ->whereNull('served_at')
-                        ->exists();
+    // Check if the patient already has an un-served token
+    $already = Token::where('department_id', $department->id)
+                    ->where('patient_id',  $patient->id)
+                    ->whereNull('served_at')
+                    ->exists();
 
-        if ($already) {
-            return back()
-                ->with('error', "You already have token “{$department->short_name}”.")
-                ->withInput();
-        }
-
-        // otherwise issue a new one…
-        $next   = Token::where('department_id',$department->id)->count()+1;
-        $prefix = strtoupper(substr($department->short_name ?: $department->name,0,1));
-        $code   = $prefix.str_pad($next,3,'0',STR_PAD_LEFT);
-
-        Token::create([
-            'department_id' => $department->id,
-            'patient_id'    => $patient->id,
-            'code'          => $code,
-            'served_at'     => null,
-        ]);
-
-        session()->put('patient_token', $code);
-
-        return redirect()
-            ->route('patient.queue')
-            ->with('success',"Your token is {$code}.");
+    if ($already) {
+        return back()
+            ->with('error', 'You already have a token for this department.');
     }
 
+    // Generate the next token
+    $next   = Token::where('department_id', $department->id)->count() + 1;
+    $prefix = strtoupper(substr($department->short_name ?: $department->name, 0, 1));
+    $code   = $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
 
-/**
- * GET /queue/{department}
- * Show the admin display for a single department.
- */
+    $token = Token::create([
+        'department_id' => $department->id,
+        'patient_id'    => $patient->id,
+        'code'          => $code,
+    ]);
+
+    // Store token in the session
+    session()->put('patient_token', $code);
+
+    // Redirect the patient to the live display of the queue
+    return redirect()
+        ->route('queue.display', $department)
+        ->with('success', "Your token is {$code}.");
+}
+
+
+
+
 public function adminDisplay(Department $department)
 {
     // 1) Grab the next 5 pending tokens
@@ -171,7 +169,6 @@ public function update(Request $request, Department $department, Token $token)
         ->with('success','Token updated.');
 }
 
-// QueueController@departments
 public function departments()
 {
     $departments = Department::with('nextPendingToken')
@@ -184,8 +181,7 @@ public function departments()
         'complete' => Token::whereNotNull('served_at')->count(),
     ];
 
-   return view('queue.index', compact('departments','summary','tokens','currentServing','currentTime','patientToken','position'));
-
+    return view('queue.index', compact('departments','summary'));
 }
 
 public function serveNext(Department $department)
@@ -284,71 +280,47 @@ public function selectDepartment()
 }
 public function display(Department $department)
 {
-    // 1) grab every pending token
-    $allPending = $department
-      ->tokens()
-      ->whereNull('served_at')
-      ->orderBy('created_at')
-      ->get();
+    // Get all pending tokens for the department
+    $allPending = Token::where('department_id', $department->id)
+                       ->whereNull('served_at')
+                       ->orderBy('created_at')
+                       ->get();
 
-    // 2) slice out the next five for the “slots”
-    $tokens = $allPending->slice(0,5);
+    // Display the first 5 tokens in the queue
+    $tokens = $allPending->take(5);
+    $currentServing = optional($tokens->first())->code ?? '—';  // Show the first token as currently serving
 
-    // 3) figure out what’s currently serving
-    $currentServing = $tokens->first()->code ?? '—';
+    $currentTime = now()->format('d F Y H:i:s');
 
-    // 4) timestamp
-    $currentTime = now()->format('F j, Y H:i:s');
-
-    // 5) patient‐specific token & position (if logged in as patient)
-    $patientToken = null;
-    $position     = null;
-    if (auth()->user()?->role === 'patient') {
-      $pat = auth()->user()->patient;
-      if ($pat) {
-        $tk = $department
-               ->tokens()
-               ->where('patient_id',$pat->id)
-               ->whereNull('served_at')
-               ->first();
-        if ($tk) {
-          $patientToken = $tk->code;
-          $position     = $allPending->pluck('code')->search($tk->code) + 1;
-        }
-      }
-    }
+    // Get patient's token from the session (if available)
+    $patientToken = session('patient_token');
+    $position = $allPending->pluck('code')->search($patientToken);
 
     return view('queue.display', compact(
-      'department',
-      'allPending',
-      'tokens',
-      'currentServing',
-      'currentTime',
-      'patientToken',
-      'position'
+        'department', 'tokens', 'currentServing', 'currentTime',
+        'patientToken', 'position'
     ));
 }
 
 
+
 public function status(Department $department)
 {
-    // next 5 pending tokens
-    $pending = Token::where('department_id', $department->id)
-                    ->whereNull('served_at')
-                    ->orderBy('created_at')
-                    ->take(5)
-                    ->get(['code','created_at']);
+    // Get every pending token
+    $all = Token::where('department_id', $department->id)
+                ->whereNull('served_at')
+                ->orderBy('created_at')
+                ->get(['code','created_at']);
 
-    // last 10 served tokens
-    $history = Token::where('department_id', $department->id)
-                    ->whereNotNull('served_at')
-                    ->orderBy('served_at','desc')
-                    ->take(10)
-                    ->get(['code','served_at']);
+    // First five for the slots
+    $pending5 = $all->take(5)->map(fn($t)=> ['code'=>$t->code]);
+
+    // All codes for computing position
+    $allCodes = $all->pluck('code');
 
     return response()->json([
-        'pending' => $pending,
-        'history' => $history,
+       'pending'   => $pending5,
+       'all_codes' => $allCodes,
     ]);
 }
 

@@ -1,12 +1,11 @@
 <?php
 // app/Http/Controllers/EncoderOpdFormController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\OpdForm;
-use App\Models\OpdSubmission;
-use App\Models\Patient;
+use App\Models\Department;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class EncoderOpdFormController extends Controller
 {
@@ -15,46 +14,70 @@ class EncoderOpdFormController extends Controller
         $this->middleware(['auth','role:encoder']);
     }
 
+    /** GET /encoder/opd */
     public function index()
     {
-        $subs = OpdSubmission::with(['form','patient'])
-                              ->where('user_id', Auth::id())
-                              ->latest()
-                              ->get();
-
-        return view('encoder.opd.index', compact('subs'));
+        $forms = OpdForm::orderBy('name')->paginate(15);
+        return view('encoder.opd.index', compact('forms'));
     }
 
+    /** GET /encoder/opd/create */
     public function create()
     {
-        $forms    = OpdForm::orderBy('name')->get();
-        $patients = Patient::orderBy('name')->get();
-        return view('encoder.opd.create', compact('forms','patients'));
+        $departments = Department::orderBy('name')->get();
+        return view('encoder.opd.create', compact('departments'));
     }
 
+    /** POST /encoder/opd */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'form_id'    => 'required|exists:opd_forms,id',
-            'patient_id' => 'required|exists:patients,id',
-            'answers'    => 'required|array',
+            'name'       => 'required|string|max:255',
+            'form_no'    => 'required|string|max:50|unique:opd_forms,form_no',
+            'department' => 'required|string|max:100',
+            'fields'     => 'nullable|array',
         ]);
 
-        OpdSubmission::create([
-            'user_id'    => Auth::id(),
-            'form_id'    => $data['form_id'],
-            'patient_id' => $data['patient_id'],
-            'answers'    => json_encode($data['answers']),
-        ]);
+        $data['fields'] = $data['fields'] ?? [];
+        OpdForm::create($data);
 
-        return redirect()->route('encoder.opd.index')
-                         ->with('success','Form submitted.');
+        return redirect()
+            ->route('encoder.opd.index')
+            ->with('success','OPD form template created.');
     }
 
-    public function show(OpdSubmission $opdSubmission)
+    /** GET /encoder/opd/{opd_form}/edit */
+    public function edit(OpdForm $opd_form)
     {
-        $opdSubmission->load(['form','patient']);
-        return view('encoder.opd.show', compact('opdSubmission'));
+        $departments = Department::orderBy('name')->get();
+        return view('encoder.opd.edit', compact('opd_form','departments'));
+    }
+
+    /** PUT /encoder/opd/{opd_form} */
+    public function update(Request $request, OpdForm $opd_form)
+    {
+        $data = $request->validate([
+            'name'       => 'required|string|max:255',
+            'form_no'    => 'required|string|max:50|unique:opd_forms,form_no,'.$opd_form->id,
+            'department' => 'required|string|max:100',
+            'fields'     => 'nullable|array',
+        ]);
+
+        $data['fields'] = $data['fields'] ?? [];
+        $opd_form->update($data);
+
+        return redirect()
+            ->route('encoder.opd.index')
+            ->with('success','OPD form template updated.');
+    }
+
+    /** (Optional) DELETE /encoder/opd/{opd_form} */
+    public function destroy(OpdForm $opd_form)
+    {
+        $opd_form->delete();
+
+        return redirect()
+            ->route('encoder.opd.index')
+            ->with('success','OPD form template deleted.');
     }
 }
-

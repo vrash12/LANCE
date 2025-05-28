@@ -1,18 +1,16 @@
-{{-- resources/views/opd_forms/edit.blade.php --}}
 @extends('layouts.admin')
 
 @section('content')
-<div class="container col-lg-6">
-  <h2>Edit OPD Form</h2>
-  <form action="{{ route('opd_forms.update', $opd_form) }}" method="POST">
-    @csrf
-    @method('PUT')
+<div class="container-fluid">
+  <h1 class="mb-4">Edit {{ $opd_form->name }}</h1>
 
-    {{-- this must match the partial’s view name --}}
-    @include('opd_forms._form')
+  {{-- load the OPD-OB partial and tell it the update route + verb --}}
+ @include('opd_forms.opdb._form', [
+    'postRoute'   => route('ob-opd-forms.update', $submission), // PUT/PATCH
+    'opd_form'    => $submission,   // or however you repopulate
+    'needPut'     => true,
+    'showButtons' => true
+])
 
-    <button type="submit" class="btn btn-info mt-2">Update</button>
-    <a href="{{ route('opd_forms.index') }}" class="btn btn-secondary mt-2">Cancel</a>
-  </form>
 </div>
 @endsection

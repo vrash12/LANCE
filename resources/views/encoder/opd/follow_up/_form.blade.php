@@ -1,0 +1,1 @@
+@include('opd_forms.follow_up._form', get_defined_vars())

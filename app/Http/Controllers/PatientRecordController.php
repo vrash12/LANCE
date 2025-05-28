@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Patient;
 use App\Models\User;
+use App\Models\Patient;
+use App\Models\OpdSubmission;
+use App\Models\PatientProfile;
 use App\Exports\PatientRecordExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,90 +16,120 @@ class PatientRecordController extends Controller
 {
     public function __construct()
     {
+        // Only admins can manage patient records
         $this->middleware(['auth','role:admin']);
     }
 
-// app/Http/Controllers/PatientRecordController.php
+
+    /**
+ * AJAX patient search for Select2.
+ */
+    public function search(Request $request)
+    {
+        $q = $request->input('q', '');
+
+        $patients = Patient::with('profile')
+            ->where('name', 'like', "%{$q}%")
+            ->limit(20)
+            ->get();
+
+        $results = $patients->map(function($p) {
+            // split “Last, Given” into two parts
+            [$last, $given] = array_pad(explode(',', $p->name, 2), 2, '');
+
+            return [
+                'id'          => $p->id,
+                'text'        => $p->name,              // what Select2 shows in dropdown
+                'last_name'   => trim($last),
+                'given_name'  => trim($given),
+                'middle_name' => $p->profile->middle_name ?? '',
+                'age'         => $p->birth_date
+                                   ? now()->diffInYears($p->birth_date)
+                                   : '',
+                'sex'         => ucfirst($p->profile->sex ?? ''),
+            ];
+        });
+
+        return response()->json(['results' => $results]);
+    }
+
+
+    /**
+     * Display a listing of patients (with profiles).
+     */
 public function index()
 {
-    // ❶ Pull every patient-role user
-    $users = \App\Models\User::where('role', 'patient')
-                ->orderBy('name')
-                ->get();
+    // 1) Fetch all OB-OPD submissions
+    $submissions = OpdSubmission::with(['patient.user'])
+        ->whereHas('form', fn($q) => $q->where('form_no', 'OPD-F-07'))
+        ->get();
 
-    // ❷ For any user that does NOT have a patient row yet,
-    //    create a bare-bones record so the UI can edit it
-    $users->each(function ($u) {
-        if (!$u->patient) {
-            $u->patient = \App\Models\Patient::create([
-                'user_id'    => $u->id,
-                'name'       => $u->name,   // you can copy other defaults, too
-                'birth_date' => null,
-                'contact_no' => null,
-                'address'    => null,
-            ]);
-        }
-    });
+    // 2) Extract unique patients
+    $patients = $submissions
+        ->pluck('patient')       // get Patient models from each submission
+        ->unique('id')           // only distinct patients
+        ->values();              // re-index the collection
 
-    // ❸ Eager-load the relation so Blade can call $user->patient->id, etc.
-    $users->load('patient');
-
-    return view('patients.index', compact('users'));
+    // 3) Pass to the view
+    return view('patients.index', compact('patients'));
 }
 
-
-
-    // SHOW CREATE FORM
+    /**
+     * Show the form for creating a new patient + profile.
+     */
     public function create()
     {
         return view('patients.create');
     }
 
-   public function store(Request $request)
+    /**
+     * Store a newly created patient (and user + profile).
+     */
+    public function store(Request $request)
     {
-        // 1) base validation for user + patient
+        // 1) Validate user + patient fields
         $baseRules = [
-            'email'         => 'required|email|unique:users,email',
-            'password'      => 'required|confirmed|min:8',
-            'name'          => 'required|string|max:255',
-            'birth_date'    => 'nullable|date',
-            'address'       => 'nullable|string|max:255',
+            'email'      => 'required|email|unique:users,email',
+            'password'   => 'required|confirmed|min:8',
+            'name'       => 'required|string|max:255',
+            'birth_date' => 'nullable|date',
+            'contact_no' => 'nullable|string|max:50',
+            'address'    => 'nullable|string|max:255',
         ];
 
-        // 2) validation for the profile fields
+        // 2) Validate profile fields
         $profileRules = [
-            'sex'                => 'nullable|in:male,female',
-            'religion'           => 'nullable|string|max:100',
-            'date_recorded'      => 'nullable|date',
-            'father_name'        => 'nullable|string|max:255',
-            'father_occupation'  => 'nullable|string|max:255',
-            'mother_name'        => 'nullable|string|max:255',
-            'mother_occupation'  => 'nullable|string|max:255',
-            'place_of_marriage'  => 'nullable|string|max:255',
-            'date_of_marriage'   => 'nullable|date',
-            'contact_no'         => 'nullable|string|max:50',
-            'blood_type'         => 'nullable|string|max:3',
-            'delivery_type'      => 'nullable|string|max:50',
-            'birth_weight'       => 'nullable|numeric|min:0|max:20',
-            'birth_length'       => 'nullable|numeric|min:0|max:100',
-            'apgar_appearance'   => 'nullable|integer|between:0,2',
-            'apgar_pulse'        => 'nullable|integer|between:0,2',
-            'apgar_grimace'      => 'nullable|integer|between:0,2',
-            'apgar_activity'     => 'nullable|integer|between:0,2',
-            'apgar_respiration'  => 'nullable|integer|between:0,2',
+            'sex'               => 'nullable|in:male,female',
+            'religion'          => 'nullable|string|max:100',
+            'date_recorded'     => 'nullable|date',
+            'father_name'       => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'mother_name'       => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
+            'place_of_marriage' => 'nullable|string|max:255',
+            'date_of_marriage'  => 'nullable|date',
+            'blood_type'        => 'nullable|string|max:3',
+            'delivery_type'     => 'nullable|string|max:50',
+            'birth_weight'      => 'nullable|numeric|min:0|max:20',
+            'birth_length'      => 'nullable|numeric|min:0|max:100',
+            'apgar_appearance'  => 'nullable|integer|between:0,2',
+            'apgar_pulse'       => 'nullable|integer|between:0,2',
+            'apgar_grimace'     => 'nullable|integer|between:0,2',
+            'apgar_activity'    => 'nullable|integer|between:0,2',
+            'apgar_respiration' => 'nullable|integer|between:0,2',
         ];
 
         $data = $request->validate(array_merge($baseRules, $profileRules));
 
-        // 3) create the User
+        // 3) Create the user
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
-            'role'     => 'patient'
+            'role'     => 'patient',
         ]);
 
-        // 4) create the Patient
+        // 4) Create the patient
         $patient = Patient::create([
             'user_id'    => $user->id,
             'name'       => $data['name'],
@@ -106,75 +138,85 @@ public function index()
             'address'    => $data['address'] ?? null,
         ]);
 
-        // 5) create the PatientProfile
-        $patient->profile()->create($request->only(array_keys($profileRules)));
+        // 5) Create the profile
+        $patient->profile()->create(
+            $request->only(array_keys($profileRules))
+        );
 
         return redirect()
             ->route('patients.index')
-            ->with('success','Patient added successfully.');
+            ->with('success', 'Patient added successfully.');
     }
 
-
- public function show(Patient $patient)
-{
-    $patient->load(['profile','user','visits']);
-    return view('patients.show', compact('patient'));
-}
-
-public function edit(Patient $patient)
-{
-    $patient->load(['profile','user']);
-    return view('patients.edit', compact('patient'));
-}
-
-
-    // UPDATE PATIENT & their User record
-     public function update(Request $request, Patient $patient)
+    /**
+     * Display the specified patient profile.
+     */
+    public function show(Patient $patient)
     {
-        // 1) base validation for email/name/password
+        $patient->load(['user', 'profile', 'visits']);
+        return view('patients.show', compact('patient'));
+    }
+
+    /**
+     * Show the form for editing the specified patient+user.
+     */
+    public function edit(Patient $patient)
+    {
+        $patient->load(['user', 'profile']);
+        return view('patients.edit', compact('patient'));
+    }
+
+    /**
+     * Update the specified patient and profile in storage.
+     */
+    public function update(Request $request, Patient $patient)
+    {
+        // 1) Validate user fields
         $baseRules = [
-            'email'         => "required|email|unique:users,email,{$patient->user_id}",
-            'password'      => 'nullable|confirmed|min:8',
-            'name'          => 'required|string|max:255',
-            'birth_date'    => 'nullable|date',
-            'address'       => 'nullable|string|max:255',
+            'email'      => "required|email|unique:users,email,{$patient->user_id}",
+            'password'   => 'nullable|confirmed|min:8',
+            'name'       => 'required|string|max:255',
+            'birth_date' => 'nullable|date',
+            'contact_no' => 'nullable|string|max:50',
+            'address'    => 'nullable|string|max:255',
         ];
 
-        // 2) same profile rules as above
+        // 2) Same profile rules as store
         $profileRules = [
-            'sex'                => 'nullable|in:male,female',
-            'religion'           => 'nullable|string|max:100',
-            'date_recorded'      => 'nullable|date',
-            'father_name'        => 'nullable|string|max:255',
-            'father_occupation'  => 'nullable|string|max:255',
-            'mother_name'        => 'nullable|string|max:255',
-            'mother_occupation'  => 'nullable|string|max:255',
-            'place_of_marriage'  => 'nullable|string|max:255',
-            'date_of_marriage'   => 'nullable|date',
-            'contact_no'         => 'nullable|string|max:50',
-            'blood_type'         => 'nullable|string|max:3',
-            'delivery_type'      => 'nullable|string|max:50',
-            'birth_weight'       => 'nullable|numeric|min:0|max:20',
-            'birth_length'       => 'nullable|numeric|min:0|max:100',
-            'apgar_appearance'   => 'nullable|integer|between:0,2',
-            'apgar_pulse'        => 'nullable|integer|between:0,2',
-            'apgar_grimace'      => 'nullable|integer|between:0,2',
-            'apgar_activity'     => 'nullable|integer|between:0,2',
-            'apgar_respiration'  => 'nullable|integer|between:0,2',
+            'sex'               => 'nullable|in:male,female',
+            'religion'          => 'nullable|string|max:100',
+            'date_recorded'     => 'nullable|date',
+            'father_name'       => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'mother_name'       => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
+            'place_of_marriage' => 'nullable|string|max:255',
+            'date_of_marriage'  => 'nullable|date',
+            'blood_type'        => 'nullable|string|max:3',
+            'delivery_type'     => 'nullable|string|max:50',
+            'birth_weight'      => 'nullable|numeric|min:0|max:20',
+            'birth_length'      => 'nullable|numeric|min:0|max:100',
+            'apgar_appearance'  => 'nullable|integer|between:0,2',
+            'apgar_pulse'       => 'nullable|integer|between:0,2',
+            'apgar_grimace'     => 'nullable|integer|between:0,2',
+            'apgar_activity'    => 'nullable|integer|between:0,2',
+            'apgar_respiration' => 'nullable|integer|between:0,2',
         ];
 
         $data = $request->validate(array_merge($baseRules, $profileRules));
 
-        // 3) update User
+        // 3) Update user
         $user = $patient->user;
-        $user->name  = $data['name'];
-        $user->email = $data['email'];
-        if (!empty($data['password'])) {
+        $user->update([
+            'name'  => $data['name'],
+            'email' => $data['email'],
+        ]);
+        if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
+            $user->save();
         }
-        $user->save();
 
-        // 4) update Patient
+        // 4) Update patient
         $patient->update([
             'name'       => $data['name'],
             'birth_date' => $data['birth_date'] ?? null,
@@ -182,43 +224,47 @@ public function edit(Patient $patient)
             'address'    => $data['address'] ?? null,
         ]);
 
-        // 5) updateOrCreate PatientProfile
+        // 5) Update or create profile
         $patient->profile()
                 ->updateOrCreate([], $request->only(array_keys($profileRules)));
 
         return redirect()
             ->route('patients.index')
-            ->with('success','Patient updated successfully.');
+            ->with('success', 'Patient updated successfully.');
     }
 
-    // DELETE PATIENT (and optionally their User)
+    /**
+     * Remove the specified patient (and user) from storage.
+     */
     public function destroy(Patient $patient)
     {
-        // if you want to delete the user as well:
+        // also remove the linked User
         $patient->user()->delete();
         $patient->delete();
 
         return redirect()
             ->route('patients.index')
-            ->with('success','Patient deleted.');
+            ->with('success', 'Patient deleted.');
     }
 
-    // EXPORT SINGLE PATIENT + HISTORY TO EXCEL
+    /**
+     * Export a single patient record (and visits) to Excel.
+     */
     public function exportExcel(Patient $patient)
     {
-        $patient->load(['visits','user']);
-
+        $patient->load(['user','visits']);
         return Excel::download(
             new PatientRecordExport($patient),
             "patient-{$patient->id}-record.xlsx"
         );
     }
 
-    // EXPORT SINGLE PATIENT + HISTORY TO PDF
+    /**
+     * Export a single patient record (and visits) to PDF.
+     */
     public function exportPdf(Patient $patient)
     {
-        $patient->load(['visits','user']);
-
+        $patient->load(['user','visits']);
         $pdf = PDF::loadView('patients.pdf', compact('patient'))
                   ->setPaper('a4','portrait');
 

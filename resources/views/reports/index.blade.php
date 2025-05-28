@@ -1,3 +1,4 @@
+{{--resources/views/reports/index.blade.php--}}
 @extends('layouts.admin')
 
 @section('content')
@@ -104,17 +105,18 @@
   });
 
   // 1) Age Range → Bar
-  (() => {
-    const stats = @json($ageStats);
-    const { labels, data } = extract(stats, 'age_range','total');
-    new Chart(document.getElementById('ageChart'), {
-      type: 'bar',
-      data: { labels, datasets:[{ label:'Patients', data }] },
-      options: {
-        scales: { y: { beginAtZero:true, ticks:{precision:0} } }
-      }
-    });
-  })();
+(() => {
+  const stats = @json($ageStats);  // Ensure $ageStats is not empty or null
+  console.log(stats); // Debugging: check the data in the console
+  const { labels, data } = extract(stats, 'age_range', 'total');
+  new Chart(document.getElementById('ageChart'), {
+    type: 'bar',
+    data: { labels, datasets:[{ label:'Patients', data }] },
+    options: {
+      scales: { y: { beginAtZero:true, ticks:{precision:0} } }
+    }
+  });
+})();
 
   // 2) Gender → Pie
   (() => {
