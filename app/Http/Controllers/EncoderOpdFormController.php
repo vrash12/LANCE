@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\OpdForm;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use App\Models\PatientProfile;
 
 class EncoderOpdFormController extends Controller
 {
@@ -14,11 +15,14 @@ class EncoderOpdFormController extends Controller
         $this->middleware(['auth','role:encoder']);
     }
 
-    /** GET /encoder/opd */
     public function index()
     {
-        $forms = OpdForm::orderBy('name')->paginate(15);
-        return view('encoder.opd.index', compact('forms'));
+        // eager-load the patient relationship
+        $profiles = PatientProfile::with('patient')
+                        ->orderByDesc('date_recorded')
+                        ->get();
+
+        return view('encoder.opd.index', compact('profiles'));
     }
 
     /** GET /encoder/opd/create */

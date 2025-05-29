@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/FollowUpOpdFormController.php
 
 namespace App\Http\Controllers;
 
@@ -10,7 +11,6 @@ class FollowUpOpdFormController extends Controller
 {
     public function __construct()
     {
-        // only authenticated users
         $this->middleware('auth');
     }
 
@@ -33,9 +33,8 @@ class FollowUpOpdFormController extends Controller
     public function create()
     {
         return view('opd_forms.follow_up.create', [
-            'opd_form'    => null,
-            'postRoute'   => route('follow-up-opd-forms.store'),
-            'showButtons' => true,
+            'opd_form'  => null,
+            'postRoute' => route('follow-up-opd-forms.store'),
         ]);
     }
 
@@ -44,32 +43,28 @@ class FollowUpOpdFormController extends Controller
      */
     public function store(Request $request)
     {
-        // fetch the OPD-F-08 template
         $template = OpdForm::where('form_no', 'OPD-F-08')->firstOrFail();
 
-        // validation rules for patient header + follow-ups
-        $rules = [
-            'last_name'             => 'nullable|string|max:255',
-            'given_name'            => 'nullable|string|max:255',
-            'middle_name'           => 'nullable|string|max:255',
-            'age'                   => 'nullable|integer|min:0',
-            'sex'                   => 'nullable|in:male,female',
-            'birth_date'            => 'nullable|date',
-            'followups'             => 'nullable|array',
-            'followups.*.date'      => 'nullable|date',
-            'followups.*.gest_weeks'=> 'nullable|integer|min:0',
-            'followups.*.weight'    => 'nullable|numeric',
-            'followups.*.bp'        => 'nullable|string|max:20',
-            'followups.*.remarks'   => 'nullable|string',
-        ];
-
-        $data = $request->validate($rules);
+        $validated = $request->validate([
+            'patient_id'             => 'required|exists:patients,id',
+            'last_name'              => 'nullable|string|max:255',
+            'given_name'             => 'nullable|string|max:255',
+            'middle_name'            => 'nullable|string|max:255',
+            'age'                    => 'nullable|integer|min:0',
+            'sex'                    => 'nullable|in:male,female',
+            'followups'              => 'nullable|array',
+            'followups.*.date'       => 'nullable|date',
+            'followups.*.gest_weeks' => 'nullable|integer|min:0',
+            'followups.*.weight'     => 'nullable|numeric',
+            'followups.*.bp'         => 'nullable|string|max:20',
+            'followups.*.remarks'    => 'nullable|string',
+        ]);
 
         OpdSubmission::create([
             'form_id'    => $template->id,
             'user_id'    => auth()->id(),
-            'patient_id' => null,    // or assign if you have a patient selector
-            'answers'    => $data,
+            'patient_id' => $validated['patient_id'],
+            'answers'    => $validated,
         ]);
 
         return redirect()
@@ -92,7 +87,11 @@ class FollowUpOpdFormController extends Controller
     public function edit(OpdSubmission $submission)
     {
         $submission->load('form');
-        return view('opd_forms.follow_up.edit', compact('submission'));
+        return view('opd_forms.follow_up.edit', [
+            'opd_form'  => $submission,
+            'postRoute' => route('follow-up-opd-forms.update', $submission),
+            'showButtons' => true,
+        ]);
     }
 
     /**
@@ -100,22 +99,23 @@ class FollowUpOpdFormController extends Controller
      */
     public function update(Request $request, OpdSubmission $submission)
     {
-        $rules = [
-            'last_name'             => 'nullable|string|max:255',
-            'given_name'            => 'nullable|string|max:255',
-            'middle_name'           => 'nullable|string|max:255',
-            'age'                   => 'nullable|integer|min:0',
-            'sex'                   => 'nullable|in:male,female',
-            'birth_date'            => 'nullable|date',
-            'followups'             => 'nullable|array',
-            'followups.*.date'      => 'nullable|date',
-            'followups.*.gest_weeks'=> 'nullable|integer|min:0',
-            'followups.*.weight'    => 'nullable|numeric',
-            'followups.*.bp'        => 'nullable|string|max:20',
-            'followups.*.remarks'   => 'nullable|string',
-        ];
+        $validated = $request->validate([
+            'patient_id'             => 'required|exists:patients,id',
+            'last_name'              => 'nullable|string|max:255',
+            'given_name'             => 'nullable|string|max:255',
+            'middle_name'            => 'nullable|string|max:255',
+            'age'                    => 'nullable|integer|min:0',
+            'sex'                    => 'nullable|in:male,female',
+            'followups'              => 'nullable|array',
+            'followups.*.date'       => 'nullable|date',
+            'followups.*.gest_weeks' => 'nullable|integer|min:0',
+            'followups.*.weight'     => 'nullable|numeric',
+            'followups.*.bp'         => 'nullable|string|max:20',
+            'followups.*.remarks'    => 'nullable|string',
+        ]);
 
-        $submission->answers = $request->validate($rules);
+        $submission->answers    = $validated;
+        $submission->patient_id = $validated['patient_id'];
         $submission->save();
 
         return redirect()
@@ -129,6 +129,7 @@ class FollowUpOpdFormController extends Controller
     public function destroy(OpdSubmission $submission)
     {
         $submission->delete();
+
         return redirect()
             ->route('follow-up-opd-forms.index')
             ->with('success', 'Follow-up record deleted.');

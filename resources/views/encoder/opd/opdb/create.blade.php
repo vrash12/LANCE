@@ -3,30 +3,13 @@
 
 @section('content')
 <div class="container">
-  <h1 class="mb-4">
-      Fill {{ strtoupper($type) }} Form &middot; {{ $patient->name }}
-  </h1>
+  <h1 class="mb-4">New OB-OPD Form (Window A Assignment)</h1>
 
-  <form method="POST"
-        action="{{ route('encoder.patient_profiles.store', $patient) }}">
-    @csrf
-
-    @php
-        // figure out which partial folder to load
-        $partial = match($type) {
-            'follow_up' => 'encoder.opd.follow_up._form',
-            'high_risk' => 'encoder.opd.high_risk._form',
-            default     => 'encoder.opd.opdb._form',
-        };
-    @endphp
-
-    @include($partial, [
-        'forPatient' => true,   // hide template-only metadata
-        'patient'    => $patient,
-        'opd_form'   => null,   // not editing a template
-    ])
-
-    <button class="btn btn-primary mt-3">Save Profile</button>
-  </form>
+  {{-- include the shared OPD-OB form partial, passing in the null model & store route --}}
+  @include('opd_forms.opdb._form', [
+      'opd_form'    => null,
+      'postRoute'   => route('encoder.opd.store'),
+      'showButtons' => true,
+  ])
 </div>
 @endsection

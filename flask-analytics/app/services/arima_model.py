@@ -1,1 +1,0 @@
-from .data_fetcher import fetch_patient_visit_counts

@@ -208,13 +208,14 @@ if ($obDepartment && $patient) {
             'code'          => $code,
         ]);
 
-        // drop it in the session so we can show / print it once
-        session(['new_token_id' => $token->id]);
+ session([
+  'queue_patient_id'   => $patient->id,
+  'queue_patient_name' => $patient->name,
+]);
     }
 }
-        return redirect()
-            ->route('ob-opd-forms.index')
-            ->with('success','OB submission saved and patient profile updated!');
+  return redirect()->route('queue.display.select');
+   
     }
 
     /**

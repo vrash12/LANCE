@@ -23,7 +23,12 @@ use App\Http\Controllers\HighRiskOpdFormController;
 // 1) Authentication / root redirect
 Auth::routes();
 Route::get('/', fn() => redirect()->route('login'));
-
+Route::get('/queue/select', [QueueController::class, 'selectDepartment'])
+     ->name('queue.department_select');
+Route::get('/queue/{department}/display', [QueueController::class,'display'])
+     ->name('queue.display');
+Route::get('/queue/{department}/status',  [QueueController::class,'status'])
+     ->name('queue.status');
 Route::get('queue/{token}/print',  // <-- NEW
     [QueueController::class,'printReceipt'])
     ->middleware('auth')
@@ -45,14 +50,7 @@ Route::middleware('auth')->prefix('ob-opd/forms')->group(function () {
 });
 
 // 3) Public queue display & status
-Route::middleware(['auth','role:admin,encoder,patient'])->group(function(){
-    Route::get('queue/display',             [QueueController::class,'selectDepartment'])
-         ->name('queue.display.select');
-    Route::get('queue/{department}/display',[QueueController::class,'display'])
-         ->name('queue.display');
-    Route::get('queue/{department}/status', [QueueController::class,'status'])
-         ->name('queue.status');
-});
+
 
 // 4) Shared authenticated routes
 Route::middleware('auth')->group(function () {
@@ -158,6 +156,13 @@ Route::middleware('auth')->group(function () {
         Route::get('opd/{profile}/edit',[EncoderOpdFormController::class,'edit'])->name('opd.edit');
         Route::put('opd/{profile}',     [EncoderOpdFormController::class,'update'])->name('opd.update');
         Route::delete('opd/{profile}',  [EncoderOpdFormController::class,'destroy'])->name('opd.destroy');
+         Route::resource('patients', EncoderPatientRecordController::class);
+         
+         // 2) (existing) your encoder OPD‐filling routes…
+         Route::get('opd',         [EncoderOpdFormController::class,'index'])
+              ->name('opd.index');
+         Route::get('opd/create',  [EncoderOpdFormController::class,'create'])
+              ->name('opd.create');
     });
 
     // 6) Fill & submit any OPD template
@@ -195,4 +200,33 @@ Route::middleware('auth')->name('high-risk-opd-forms.')->prefix('high-risk-opd-f
     Route::put    ('/{submission}',     [HighRiskOpdFormController::class,'update'])->name('update');
     Route::delete ('/{submission}',     [HighRiskOpdFormController::class,'destroy'])->name('destroy');
 });
+
+Route::resource('ob-opd-forms', ObOpdFormController::class)
+      ->except(['destroy']); 
+
+      Route::get('/queue/select',        [QueueController::class,'selectDepartment'])
+     ->name('queue.select'); 
+
+     Route::post('/queue/{department}/add',
+            [QueueController::class,'encoderStore'])   // new method ↓
+     ->name('queue.encoder.store');
+
+
+     // routes/web.php
+Route::resource(
+    'follow-up-opd-forms',
+    FollowUpOpdFormController::class
+)->names([
+    'index'   => 'follow-up-opd-forms.index',
+    'create'  => 'follow-up-opd-forms.create',
+    'store'   => 'follow-up-opd-forms.store',
+    'show'    => 'follow-up-opd-forms.show',
+    'edit'    => 'follow-up-opd-forms.edit',
+    'update'  => 'follow-up-opd-forms.update',
+    'destroy' => 'follow-up-opd-forms.destroy',
+]);
+
+Route::get('/queue/select', [QueueController::class,'selectDepartment'])
+     ->name('queue.department_select');
+
 

@@ -491,6 +491,16 @@
           <span>Sign In</span>
         </button>
       </form>
+
+  <div class="text-center mt-4">
+  <a href="{{ route('queue.department_select') }}"
+     class="btn btn-outline-primary px-4 py-2">
+    <i class="bi bi-list-ol me-2"></i> View Public Queue
+  </a>
+</div>
+
+
+
     </div>
   </div>
 </div>

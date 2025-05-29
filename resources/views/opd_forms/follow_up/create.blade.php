@@ -7,6 +7,16 @@
 
 <form method="POST" action="{{ route('follow-up-opd-forms.store') }}">
   @csrf
-  @include('opd_forms.follow_up._form', ['needPut' => false])
+
+  @include('opd_forms.follow_up._form')
+
+  <div class="text-end mt-4">
+    <a href="{{ route('follow-up-opd-forms.index') }}" class="btn btn-secondary">
+      Cancel
+    </a>
+    <button type="submit" class="btn btn-primary">
+      Save Record
+    </button>
+  </div>
 </form>
 @endsection

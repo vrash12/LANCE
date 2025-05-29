@@ -41,7 +41,7 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Email</th>
+
         <th class="text-center" style="width:260px;">Action</th>
       </tr>
     </thead>
@@ -51,7 +51,7 @@
 
   <tr>
       <td>{{ $patient->name }}</td>
-      <td>{{ optional($patient->user)->email ?? '— no user' }}</td>
+  
     <td class="text-center align-middle">
       @if($patient->user)
         <a href="{{ route('patients.show', $patient) }}" class="btn btn-sm btn-view">View</a>

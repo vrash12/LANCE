@@ -56,52 +56,33 @@
           <th class="text-center">Action</th>
         </tr>
       </thead>
-      <tbody>
-        @foreach($users as $user)
-        <tr>
-          <td>{{ $user->name }}</td>
-          <td>{{ $user->email }}</td>
-          <td>{{ ucfirst($user->role) }}</td>
-          <td class="text-center">
-            @if($user->role === 'patient')
-              {{-- Patient profile actions --}}
-              <a href="{{ route('patients.show',   $user->patient) }}"
-                 class="btn btn-sm btn-view">
-                <i class="bi bi-file-earmark-text"></i> Profile
-              </a>
-              <a href="{{ route('patients.edit',   $user->patient) }}"
-                 class="btn btn-sm btn-info">
-                <i class="bi bi-pencil-square"></i> Edit Profile
-              </a>
-              <form action="{{ route('patients.destroy', $user->patient) }}"
-                    method="POST" class="d-inline"
-                    onsubmit="return confirm('Delete this patient record?');">
-                @csrf @method('DELETE')
-                <button class="btn btn-sm btn-danger">
-                  <i class="bi bi-trash"></i> Delete
-                </button>
-              </form>
-            @else
-              {{-- Admin / Encoder user actions --}}
-              <a href="{{ route('users.show', $user) }}"
-                 class="btn btn-sm btn-secondary">
-                View
-              </a>
-              <a href="{{ route('users.edit', $user) }}"
-                 class="btn btn-sm btn-info">
-                Update
-              </a>
-              <form action="{{ route('users.destroy', $user) }}"
-                    method="POST" class="d-inline"
-                    onsubmit="return confirm('Are you sure you want to delete this user?');">
-                @csrf @method('DELETE')
-                <button class="btn btn-sm btn-danger">Delete</button>
-              </form>
-            @endif
-          </td>
-        </tr>
-        @endforeach
-      </tbody>
+<tbody>
+  @foreach($users as $user)
+    <tr>
+      <td>{{ $user->name }}</td>
+      <td>{{ $user->email }}</td>
+      <td>{{ ucfirst($user->role) }}</td>
+      <td class="text-center">
+        {{-- Edit --}}
+        <a href="{{ route('users.edit', $user->id) }}"
+           class="btn btn-sm btn-info">
+          <i class="bi bi-pencil-square"></i> Edit
+        </a>
+
+        {{-- Delete --}}
+        <form action="{{ route('users.destroy', $user->id) }}"
+              method="POST" class="d-inline"
+              onsubmit="return confirm('Delete this account?');">
+          @csrf @method('DELETE')
+          <button class="btn btn-sm btn-danger">
+            <i class="bi bi-trash"></i> Delete
+          </button>
+        </form>
+      </td>
+    </tr>
+  @endforeach
+</tbody>
+
     </table>
   </div>
 </div>

@@ -13,6 +13,7 @@ class PatientProfile extends Model
         'danger_signs'            => 'array',
         'ob_history'              => 'array',
         'physical_exam_log'       => 'array',
+        'date_recorded' => 'date',
     ];
 
     /**

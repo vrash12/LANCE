@@ -11,14 +11,14 @@ class UserController extends Controller
 {
 public function index()
 {
-    $users = User::with('patient')
-                 ->orderBy('role')   // so Admins / Encoders / Patients group nicely
+    $users = User::orderBy('role')      // admins & encoders only
                  ->orderBy('name')
+                 ->whereIn('role', ['admin','encoder'])
                  ->get();
 
     return view('users.index', compact('users'));
 }
-    // Show the form for creating a new user
+ // Show the form for creating a new user
     public function create()
     {
         return view('users.create');

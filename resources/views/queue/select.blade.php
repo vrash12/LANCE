@@ -1,18 +1,16 @@
 {{-- resources/views/queue/select.blade.php --}}
-@extends('layouts.patient')
-
+@extends('layouts.admin')
 @section('content')
-<div class="container py-4">
-  <h2 class="mb-4">Choose Department to Display</h2>
-  <div class="row g-3">
-    @foreach($departments as $d)
-      <div class="col-6 col-md-4 col-lg-3">
-        <a href="{{ route('queue.display', $d) }}"
-           class="btn btn-lg w-100 btn-outline-success">
-          {{ $d->name }}
-        </a>
-      </div>
-    @endforeach
-  </div>
-</div>
+  <h1>Queue for {{ $patientName }}</h1>
+  <form action="{{ route('queue.encoder.store', $departments->first()) }}" method="POST">
+    @csrf
+    <label>Department</label>
+    <select name="department_id" onchange="this.form.action = 
+      '{{ url('queue') }}/'+this.value+'/add';">
+      @foreach($departments as $d)
+        <option value="{{ $d->id }}">{{ $d->name }}</option>
+      @endforeach
+    </select>
+    <button class="btn btn-primary mt-2">Add Token</button>
+  </form>
 @endsection
